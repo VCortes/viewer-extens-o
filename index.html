@@ -1709,7 +1709,7 @@
                 opcoesNumericas.forEach(opcao => {
                     const novaOpcao = document.createElement('option');
                     novaOpcao.value = opcao.valor;
-                    novaOpcao.textContent = opcao.texto;
+                    novaOpcao.textContent = opcao.text;
                     if (opcao.valor === 'nota_real') {
                         novaOpcao.selected = true;
                     }
@@ -1733,7 +1733,7 @@
                 opcoesCompletas.forEach(opcao => {
                     const novaOpcao = document.createElement('option');
                     novaOpcao.value = opcao.valor;
-                    novaOpcao.textContent = opcao.texto;
+                    novaOpcao.textContent = opcao.text;
                     if (opcao.selecionado) {
                         novaOpcao.selected = true;
                     }
@@ -1867,6 +1867,25 @@
             document.getElementById('exportarCSV').addEventListener('click', exportarCSV);
 
             atualizarSeletorEixos();
+
+            document.getElementById('filtroAno').value = '2025';
+            document.getElementById('filtroAno').disabled = true;
+
+            const filtroMes = document.getElementById('filtroMes');
+            filtroMes.innerHTML = '';
+
+            const mesesDisponiveis = [
+                { value: '1', text: 'Janeiro' },
+                { value: '2', text: 'Fevereiro' },
+                { value: '3', text: 'Março' }
+            ];
+
+            mesesDisponiveis.forEach(mes => {
+                const option = document.createElement('option');
+                option.value = mes.value;
+                option.textContent = mes.text;
+                filtroMes.appendChild(option);
+            });
         });
     </script>
 </body>
