@@ -788,7 +788,8 @@
                 avaliacao: '',
                 tipoNota: 'real',
                 notaMin: '',
-                notaMax: ''
+                notaMax: '',
+                periodoAcademico: ''
             },
             // Parâmetros de paginação
             paginacao: {
@@ -976,6 +977,15 @@
                     if (!trabalho.data_avaliacao) return false;
                 } else if (filtros.avaliacao === 'naoAvaliado') {
                     if (trabalho.data_avaliacao) return false;
+                }
+
+                // Filtro por periodo acadêmico
+                if (filtros.periodoAcademico !== '') {
+                    if (!trabalho.periodo_academico) return false;
+                    // Utiliza includes para permitir uma busca parcial
+                    if (!trabalho.periodo_academico.includes(filtros.periodoAcademico)) {
+                        return false;
+                    }
                 }
 
                 // Filtro por nota mínima e máxima
@@ -1687,7 +1697,8 @@
                 avaliacao: document.getElementById('filtroAvaliacao').value,
                 tipoNota: document.getElementById('tipoNota').value,
                 notaMin: document.getElementById('filtroNotaMin').value,
-                notaMax: document.getElementById('filtroNotaMax').value
+                notaMax: document.getElementById('filtroNotaMax').value,
+                periodoAcademico: document.getElementById('filtroPeriodoAcademico').value
             };
 
             // Atualizar estado com novos filtros e resetar para primeira página
@@ -1728,6 +1739,7 @@
             document.getElementById('tipoNota').value = 'real';
             document.getElementById('filtroNotaMin').value = '';
             document.getElementById('filtroNotaMax').value = '';
+            document.getElementById('filtroPeriodoAcademico').value = '';
 
             // Atualizar estado com filtros vazios e resetar para primeira página
             Object.assign(Estado, {
@@ -1740,7 +1752,8 @@
                     avaliacao: '',
                     tipoNota: 'real',
                     notaMin: '',
-                    notaMax: ''
+                    notaMax: '',
+                    periodoAcademico: ''
                 },
                 paginacao: {
                     ...Estado.paginacao,
