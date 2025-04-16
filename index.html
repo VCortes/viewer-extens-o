@@ -601,6 +601,10 @@
                     <label for="filtroPeriodoAcademico">Período Acadêmico:</label>
                     <input type="text" id="filtroPeriodoAcademico" placeholder="Ex: 2025.1">
                 </div>
+                <div class="grupo-filtro">
+                    <label for="filtroNomeDisciplina">Filtrar por Disciplina:</label>
+                    <input type="text" id="filtroNomeDisciplina" placeholder="Nome da Disciplina">
+                </div>
             </div>
 
             <div class="botoes-filtro">
@@ -809,7 +813,8 @@
                 tipoNota: 'real',
                 notaMin: '',
                 notaMax: '',
-                periodoAcademico: ''
+                periodoAcademico: '',
+                nomeDisciplina: ''
             },
             // Parâmetros de paginação
             paginacao: {
@@ -1004,6 +1009,13 @@
                     if (!trabalho.periodo_academico) return false;
                     // Utiliza includes para permitir uma busca parcial
                     if (!trabalho.periodo_academico.includes(filtros.periodoAcademico)) {
+                        return false;
+                    }
+                }
+
+                // Filtro por nome da disciplina
+                if (filtros.nomeDisciplina !== '') {
+                    if (!trabalho.nome_disciplina || !trabalho.nome_disciplina.toLowerCase().includes(filtros.nomeDisciplina.toLowerCase())) {
                         return false;
                     }
                 }
@@ -1752,7 +1764,8 @@
                 tipoNota: document.getElementById('tipoNota').value,
                 notaMin: document.getElementById('filtroNotaMin').value,
                 notaMax: document.getElementById('filtroNotaMax').value,
-                periodoAcademico: document.getElementById('filtroPeriodoAcademico').value
+                periodoAcademico: document.getElementById('filtroPeriodoAcademico').value,
+                nomeDisciplina: document.getElementById('filtroNomeDisciplina').value
             };
 
             // Atualizar estado com novos filtros e resetar para primeira página
@@ -1794,6 +1807,7 @@
             document.getElementById('filtroNotaMin').value = '';
             document.getElementById('filtroNotaMax').value = '';
             document.getElementById('filtroPeriodoAcademico').value = '';
+            document.getElementById('filtroNomeDisciplina').value = '';
 
             // Atualizar estado com filtros vazios e resetar para primeira página
             Object.assign(Estado, {
@@ -1807,7 +1821,8 @@
                     tipoNota: 'real',
                     notaMin: '',
                     notaMax: '',
-                    periodoAcademico: ''
+                    periodoAcademico: '',
+                    nomeDisciplina: ''
                 },
                 paginacao: {
                     ...Estado.paginacao,
