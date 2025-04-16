@@ -324,6 +324,29 @@
             content: " ▼";
         }
 
+        /* Indicação visual para cabeçalhos clicáveis */
+        th {
+            position: relative;
+        }
+
+        th::after {
+            content: " ⇅";
+            opacity: 0.3;
+            font-size: 0.8em;
+            vertical-align: middle;
+            transition: opacity 0.2s;
+        }
+
+        th:hover::after {
+            opacity: 1;
+        }
+
+        /* Sobrescrever o after para cabeçalhos já ordenados */
+        th.ordem-asc::after,
+        th.ordem-desc::after {
+            opacity: 1;
+        }
+
         /* Estilos para mensagens */
         .mensagem {
             padding: 15px;
@@ -568,8 +591,15 @@
 
             <div class="botoes-filtro">
                 <button id="aplicarFiltros">Aplicar Filtros</button>
-                <button id="exportarCSV" style="background-color: var(--cor-sucesso);">Exportar Dados</button>
+                <button id="exportarCSV" style="background-color: var(--cor-sucesso);">Exportar Dados
+                    (Filtrados)</button>
                 <button id="limparFiltros" class="limpar">Limpar Filtros</button>
+            </div>
+
+            <div class="mensagem info" style="margin-top: 15px; font-size: 14px;">
+                <strong>Nota:</strong> Para checar a quantidade de trabalhos avaliados em um mês, selecionar "Tipo de
+                data para filtro: Data de Avaliação", "Filtrar por Mês: &lt;mês desejado&gt;" e "Status de Avaliação:
+                Avaliados"
             </div>
         </div>
 
