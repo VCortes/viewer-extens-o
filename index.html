@@ -568,6 +568,7 @@
 
             <div class="botoes-filtro">
                 <button id="aplicarFiltros">Aplicar Filtros</button>
+                <button id="exportarCSV" style="background-color: var(--cor-sucesso);">Exportar Dados</button>
                 <button id="limparFiltros" class="limpar">Limpar Filtros</button>
             </div>
         </div>
@@ -1745,6 +1746,98 @@
             }
         };
 
+        /**
+         * Função para converter os dados filtrados para o formato CSV
+         * @param {Array} trabalhos - Lista de trabalhos para exportar
+         * @param {string} tipoNota - Tipo de nota selecionada
+         * @returns {string} - String no formato CSV
+         */
+        const converterParaCSV = (trabalhos, tipoNota) => {
+            if (!trabalhos || trabalhos.length === 0) {
+                return '';
+            }
+
+            // Cabeçalho do CSV
+            const cabecalhos = [
+                'ID',
+                'Nota Real',
+                'Nota Ajustada',
+                'Data de Criação',
+                'Progresso',
+                'Período Acadêmico',
+                'Nome da Disciplina',
+                'Data de Avaliação'
+            ];
+
+            // Converter cabeçalhos para linha CSV
+            let csv = cabecalhos.join(',') + '\n';
+
+            // Adicionar cada trabalho como uma linha
+            trabalhos.forEach(trabalho => {
+                const linha = [
+                    trabalho.id || '',
+                    (trabalho.nota_real !== null && trabalho.nota_real !== undefined) ? trabalho.nota_real : '',
+                    (trabalho.nota_ajustada !== null && trabalho.nota_ajustada !== undefined) ? trabalho.nota_ajustada : '',
+                    trabalho.data_criacao ? new Date(trabalho.data_criacao).toLocaleString('pt-BR') : '',
+                    (trabalho.progresso !== null && trabalho.progresso !== undefined) ? trabalho.progresso : '',
+                    trabalho.periodo_academico || '',
+                    (trabalho.nome_disciplina || '').replace(/,/g, ';'), // Substituir vírgulas por ponto-e-vírgula
+                    trabalho.data_avaliacao ? new Date(trabalho.data_avaliacao).toLocaleString('pt-BR') : ''
+                ].map(valor => {
+                    // Se o valor contiver vírgulas, aspas ou quebras de linha, coloque entre aspas duplas
+                    if (typeof valor === 'string' && (valor.includes(',') || valor.includes('"') || valor.includes('\n'))) {
+                        // Escape das aspas duplas
+                        return '"' + valor.replace(/"/g, '""') + '"';
+                    }
+                    return valor;
+                });
+
+                csv += linha.join(',') + '\n';
+            });
+
+            return csv;
+        };
+
+        /**
+         * Função para exportar os dados para um arquivo CSV
+         */
+        const exportarCSV = () => {
+            // Obter trabalhos filtrados e ordenados atuais
+            const trabalhos = Estado.trabalhosFiltrados;
+            const tipoNota = Estado.filtros.tipoNota;
+
+            // Converter para CSV
+            const csv = converterParaCSV(trabalhos, tipoNota);
+
+            if (!csv) {
+                alert('Não há dados para exportar');
+                return;
+            }
+
+            // Criar um blob com o conteúdo CSV
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+
+            // Criar um URL para o blob
+            const url = URL.createObjectURL(blob);
+
+            // Criar um elemento <a> para download
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+
+            // Gerar nome do arquivo com data atual
+            const dataAtual = new Date();
+            const nomeArquivo = `trabalhos_${dataAtual.toISOString().split('T')[0]}.csv`;
+            link.setAttribute('download', nomeArquivo);
+
+            // Adicionar ao documento, clicar e remover
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Liberar o URL criado
+            URL.revokeObjectURL(url);
+        };
+
         // Configuração dos event listeners
         document.addEventListener('DOMContentLoaded', () => {
             // Os dados serão carregados apenas após autenticação
@@ -1770,6 +1863,8 @@
             document.querySelectorAll('input[name="tipoGrafico"]').forEach(radio => {
                 radio.addEventListener('change', atualizarSeletorEixos);
             });
+
+            document.getElementById('exportarCSV').addEventListener('click', exportarCSV);
 
             atualizarSeletorEixos();
         });
