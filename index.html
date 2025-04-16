@@ -501,8 +501,8 @@
                 <div class="grupo-filtro">
                     <label for="tipoData">Tipo de data para filtro:</label>
                     <select id="tipoData">
-                        <option value="avaliacao">Data de Avaliação</option>
                         <option value="criacao">Data de Criação</option>
+                        <option value="avaliacao">Data de Avaliação</option>
                     </select>
                 </div>
 
@@ -639,7 +639,7 @@
             <div class="container-grafico">
                 <canvas id="graficoTrabalhos"></canvas>
                 <div class="sem-dados-grafico" style="display: none;">
-                    Não há dados suficientes para gerar o gráfico.
+                    Dados foram atualizados.
                 </div>
             </div>
         </div>
@@ -1339,7 +1339,7 @@
          * @param {Array} trabalhos - Lista de trabalhos filtrados
          * @param {string} tipoGrafico - Tipo de gráfico: linha, barra ou pizza
          * @param {string} campoCategorias - Campo para o eixo X ou categorias
-         * @param {string} campoValores - Campo para o eixo Y ou valores
+         * @param {string} campoValores - Campo para o eixo Y ou valores (ignorado para pizza)
          */
         const criarGrafico = (trabalhos, tipoGrafico, campoCategorias, campoValores) => {
             // Verifica se há dados suficientes
@@ -1358,25 +1358,102 @@
             document.querySelector('.sem-dados-grafico').style.display = 'none';
             document.getElementById('graficoTrabalhos').style.display = 'block';
 
-            // Agrupar dados para o gráfico
-            const { labels, valores } = agruparDadosParaGrafico(trabalhos, campoCategorias, campoValores);
+            let labels = [];
+            let valores = [];
+            let total = trabalhos.length;
+
+            // Lógica diferente para gráfico de pizza (contagem e percentual)
+            if (tipoGrafico === 'pizza') {
+                // Para gráficos de pizza, só precisamos do campo de categorias
+                // Contamos a frequência de cada valor
+                const contagens = {};
+
+                trabalhos.forEach(trabalho => {
+                    const valor = obterValorCampo(trabalho, campoCategorias);
+
+                    // Tratamento especial para valores específicos
+                    let valorFormatado;
+
+                    if (campoCategorias === 'data_avaliacao') {
+                        // Para data de avaliação, mostrar avaliado vs não avaliado
+                        valorFormatado = valor ? 'Avaliado' : 'Não avaliado';
+                    } else if (valor === null || valor === undefined) {
+                        valorFormatado = 'N/D';
+                    } else if (campoCategorias === 'progresso') {
+                        // Agrupar faixas de progresso
+                        if (valor === 100) {
+                            valorFormatado = '100%';
+                        } else if (valor >= 75) {
+                            valorFormatado = '75-99%';
+                        } else if (valor >= 50) {
+                            valorFormatado = '50-74%';
+                        } else if (valor >= 25) {
+                            valorFormatado = '25-49%';
+                        } else {
+                            valorFormatado = '0-24%';
+                        }
+                    } else if (campoCategorias === 'nota_real' || campoCategorias === 'nota_ajustada') {
+                        // Agrupar faixas de notas
+                        if (valor >= 9) {
+                            valorFormatado = '9.0-10.0';
+                        } else if (valor >= 8) {
+                            valorFormatado = '8.0-8.9';
+                        } else if (valor >= 7) {
+                            valorFormatado = '7.0-7.9';
+                        } else if (valor >= 6) {
+                            valorFormatado = '6.0-6.9';
+                        } else if (valor >= 5) {
+                            valorFormatado = '5.0-5.9';
+                        } else {
+                            valorFormatado = '0.0-4.9';
+                        }
+                    } else {
+                        // Para outros campos, apenas formatar o valor
+                        valorFormatado = formatarValorParaGrafico(valor, campoCategorias);
+                    }
+
+                    // Incrementar a contagem para este valor
+                    if (!contagens[valorFormatado]) {
+                        contagens[valorFormatado] = 0;
+                    }
+                    contagens[valorFormatado]++;
+                });
+
+                // Converter contagens em arrays de labels e valores com percentuais
+                labels = Object.keys(contagens);
+                const valoresAbs = labels.map(label => contagens[label]);
+                valores = valoresAbs.map(valor => parseFloat((valor * 100 / total).toFixed(1)));
+
+                // Ordenar labels e valores por ordem decrescente de ocorrências
+                const indicesOrdenados = Array.from(valores.keys()).sort((a, b) => valores[b] - valores[a]);
+                const labelsOrdenados = indicesOrdenados.map(i => `${labels[i]} (${valores[i]}%)`);
+                const valoresOrdenados = indicesOrdenados.map(i => valores[i]);
+
+                labels = labelsOrdenados;
+                valores = valoresOrdenados;
+            } else {
+                // Lógica original para gráficos de linha e barra
+                const dadosAgrupados = agruparDadosParaGrafico(trabalhos, campoCategorias, campoValores);
+                labels = dadosAgrupados.labels;
+                valores = dadosAgrupados.valores;
+
+                // Ordenar labels e valores correspondentes (exceto para datas)
+                if (campoCategorias !== 'data_criacao' && campoCategorias !== 'data_avaliacao') {
+                    const indicesOrdenados = Array.from(labels.keys()).sort((a, b) => labels[a].localeCompare(labels[b]));
+                    const labelsOrdenados = indicesOrdenados.map(i => labels[i]);
+                    const valoresOrdenados = indicesOrdenados.map(i => valores[i]);
+
+                    // Atualizar labels e valores
+                    labels = labelsOrdenados;
+                    valores = valoresOrdenados;
+                }
+            }
 
             // Se não houver dados após agrupamento
             if (labels.length === 0) {
                 document.querySelector('.sem-dados-grafico').style.display = 'flex';
                 document.getElementById('graficoTrabalhos').style.display = 'none';
                 return;
-            }
-
-            // Ordenar labels e valores correspondentes (exceto para datas)
-            if (campoCategorias !== 'data_criacao' && campoCategorias !== 'data_avaliacao') {
-                const indicesOrdenados = Array.from(labels.keys()).sort((a, b) => labels[a].localeCompare(labels[b]));
-                const labelsOrdenados = indicesOrdenados.map(i => labels[i]);
-                const valoresOrdenados = indicesOrdenados.map(i => valores[i]);
-
-                // Atualizar labels e valores
-                labels.splice(0, labels.length, ...labelsOrdenados);
-                valores.splice(0, valores.length, ...valoresOrdenados);
             }
 
             // Gerar cores para o gráfico
@@ -1388,7 +1465,9 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: `${obterTituloEixo(campoValores)} por ${obterTituloEixo(campoCategorias)}`,
+                        label: tipoGrafico === 'pizza' ?
+                            `Distribuição por ${obterTituloEixo(campoCategorias)}` :
+                            `${obterTituloEixo(campoValores)} por ${obterTituloEixo(campoCategorias)}`,
                         data: valores,
                         backgroundColor: tipoGrafico === 'linha' ? 'rgba(54, 162, 235, 0.2)' : cores,
                         borderColor: tipoGrafico === 'linha' ? 'rgba(54, 162, 235, 1)' : cores,
@@ -1402,10 +1481,24 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            display: tipoGrafico === 'pizza'
+                            display: tipoGrafico === 'pizza',
+                            position: tipoGrafico === 'pizza' ? 'right' : 'top'
                         },
                         tooltip: {
-                            enabled: true
+                            enabled: true,
+                            callbacks: {
+                                label: function (context) {
+                                    if (tipoGrafico === 'pizza') {
+                                        return ` ${context.raw}%`;
+                                    } else {
+                                        return ` ${context.dataset.label}: ${context.raw}`;
+                                    }
+                                }
+                            }
+                        },
+                        title: {
+                            display: tipoGrafico === 'pizza',
+                            text: tipoGrafico === 'pizza' ? `Distribuição por ${obterTituloEixo(campoCategorias)} (Total: ${total})` : ''
                         }
                     }
                 }
@@ -1513,7 +1606,9 @@
 
             // Obter campos selecionados para o gráfico
             const campoCategorias = document.getElementById('colunasEixoX').value;
-            const campoValores = document.getElementById('colunasEixoY').value;
+
+            // Para pizza, o campo de valores é ignorado, apenas usamos o campo de categorias
+            const campoValores = tipoGrafico === 'pizza' ? 'contagem' : document.getElementById('colunasEixoY').value;
 
             // Criar gráfico com os trabalhos filtrados
             criarGrafico(Estado.trabalhosFiltrados, tipoGrafico, campoCategorias, campoValores);
@@ -1577,6 +1672,16 @@
             // Atualizar visualização com os novos filtros e sincronizar estado
             const novoEstado = atualizarVisualizacao(Estado);
             Object.assign(Estado, novoEstado);
+
+            // Limpar o gráfico ao aplicar novos filtros
+            if (Estado.grafico) {
+                Estado.grafico.destroy();
+                Estado.grafico = null;
+            }
+
+            // Mostrar mensagem de sem dados e ocultar canvas do gráfico
+            document.querySelector('.sem-dados-grafico').style.display = 'flex';
+            document.getElementById('graficoTrabalhos').style.display = 'none';
         };
 
         /**
@@ -1692,34 +1797,23 @@
         const atualizarSeletorEixos = () => {
             const tipoGrafico = document.querySelector('input[name="tipoGrafico"]:checked').value;
             const seletorEixoY = document.getElementById('colunasEixoY');
+            const containerEixoY = document.querySelector('label[for="colunasEixoY"]').parentElement;
 
-            // Se for gráfico de pizza, limitar as opções de valores para campos numéricos
+            // Se for gráfico de pizza, esconder o seletor do eixo Y e mostrar apenas o do eixo X
             if (tipoGrafico === 'pizza') {
-                // Limpar opções atuais
-                seletorEixoY.innerHTML = '';
+                // Esconder o seletor de eixo Y
+                containerEixoY.style.display = 'none';
 
-                // Adicionar apenas opções numéricas
-                const opcoesNumericas = [
-                    { valor: 'id', texto: 'ID' },
-                    { valor: 'nota_real', texto: 'Nota Real' },
-                    { valor: 'nota_ajustada', texto: 'Nota Ajustada' },
-                    { valor: 'progresso', texto: 'Progresso' }
-                ];
-
-                opcoesNumericas.forEach(opcao => {
-                    const novaOpcao = document.createElement('option');
-                    novaOpcao.value = opcao.valor;
-                    novaOpcao.textContent = opcao.text;
-                    if (opcao.valor === 'nota_real') {
-                        novaOpcao.selected = true;
-                    }
-                    seletorEixoY.appendChild(novaOpcao);
-                });
-
-                // Alterar rótulo do seletor
-                document.querySelector('label[for="colunasEixoY"]').textContent = 'Dados para Valores:';
-                document.querySelector('label[for="colunasEixoX"]').textContent = 'Dados para Categorias:';
+                // Alterar rótulo do seletor de eixo X para indicar que só ele é usado
+                document.querySelector('label[for="colunasEixoX"]').textContent = 'Dados para categorias (distribuição percentual):';
             } else {
+                // Mostrar o seletor de eixo Y para outros tipos de gráfico
+                containerEixoY.style.display = 'block';
+
+                // Restaurar rótulos originais
+                document.querySelector('label[for="colunasEixoY"]').textContent = 'Dados para Eixo Y (ou valores):';
+                document.querySelector('label[for="colunasEixoX"]').textContent = 'Dados para Eixo X (ou categorias):';
+
                 // Restaurar todas as opções para gráficos de linha e barra
                 seletorEixoY.innerHTML = '';
 
@@ -1733,16 +1827,12 @@
                 opcoesCompletas.forEach(opcao => {
                     const novaOpcao = document.createElement('option');
                     novaOpcao.value = opcao.valor;
-                    novaOpcao.textContent = opcao.text;
+                    novaOpcao.textContent = opcao.texto;
                     if (opcao.selecionado) {
                         novaOpcao.selected = true;
                     }
                     seletorEixoY.appendChild(novaOpcao);
                 });
-
-                // Restaurar rótulos
-                document.querySelector('label[for="colunasEixoY"]').textContent = 'Dados para Eixo Y (ou valores):';
-                document.querySelector('label[for="colunasEixoX"]').textContent = 'Dados para Eixo X (ou categorias):';
             }
         };
 
@@ -1873,6 +1963,12 @@
 
             const filtroMes = document.getElementById('filtroMes');
             filtroMes.innerHTML = '';
+
+            // Adicionar a opção "Todos" primeiro
+            const optionTodos = document.createElement('option');
+            optionTodos.value = '';
+            optionTodos.textContent = 'Todos os meses';
+            filtroMes.appendChild(optionTodos);
 
             const mesesDisponiveis = [
                 { value: '1', text: 'Janeiro' },
