@@ -587,6 +587,11 @@
                     <label for="filtroNotaMax">Nota Máxima:</label>
                     <input type="number" id="filtroNotaMax" min="0" max="10" step="0.1" placeholder="Máximo">
                 </div>
+
+                <div class="grupo-filtro">
+                    <label for="filtroPeriodoAcademico">Período Acadêmico:</label>
+                    <input type="text" id="filtroPeriodoAcademico" placeholder="Ex: 2025.1">
+                </div>
             </div>
 
             <div class="botoes-filtro">
@@ -599,7 +604,9 @@
             <div class="mensagem info" style="margin-top: 15px; font-size: 14px;">
                 <strong>Nota:</strong> Para checar a quantidade de trabalhos avaliados em um mês, selecionar "Tipo de
                 data para filtro: Data de Avaliação", "Filtrar por Mês: &lt;mês desejado&gt;" e "Status de Avaliação:
-                Avaliados"
+                Avaliados". A quantidade total de trabalhos avaliados nessa amostra é superior a quantidade de trabalhos
+                avaliados nesses três
+                meses.
             </div>
         </div>
 
@@ -629,14 +636,14 @@
                 <div class="controle-grafico">
                     <label>Tipo de Gráfico:</label>
                     <div class="tipo-grafico-opcoes">
-                        <label class="tipo-grafico-opcao">
-                            <input type="radio" name="tipoGrafico" value="linha" checked> Linha
+                        <label class="tipo-grafico-opcao" style="display: none;">
+                            <input type="radio" name="tipoGrafico" value="linha"> Linha
                         </label>
-                        <label class="tipo-grafico-opcao">
+                        <label class="tipo-grafico-opcao" style="display: none;">
                             <input type="radio" name="tipoGrafico" value="barra"> Barra
                         </label>
                         <label class="tipo-grafico-opcao">
-                            <input type="radio" name="tipoGrafico" value="pizza"> Pizza
+                            <input type="radio" name="tipoGrafico" value="pizza" checked> Pizza
                         </label>
                     </div>
                 </div>
@@ -661,6 +668,10 @@
                         <option value="nota_ajustada">Nota Ajustada</option>
                         <option value="progresso">Progresso</option>
                     </select>
+                </div>
+                <div class="controle-grafico">
+                    <label for="maxGruposEixoX">Máximo de grupos no Eixo X:</label>
+                    <input type="number" id="maxGruposEixoX" min="5" max="100" value="10" class="input-numero">
                 </div>
                 <div class="controle-grafico">
                     <button id="gerarGrafico" class="botao-gerar-grafico">Gerar Gráfico</button>
@@ -1398,6 +1409,9 @@
             document.querySelector('.sem-dados-grafico').style.display = 'none';
             document.getElementById('graficoTrabalhos').style.display = 'block';
 
+            // Obter o valor máximo de grupos permitidos no eixo X
+            const maxGruposEixoX = parseInt(document.getElementById('maxGruposEixoX').value) || 10;
+
             let labels = [];
             let valores = [];
             let total = trabalhos.length;
@@ -1471,6 +1485,30 @@
 
                 labels = labelsOrdenados;
                 valores = valoresOrdenados;
+
+                // Agrupar se exceder o máximo de itens (apenas para gráfico de pizza com muitos itens)
+                if (labels.length > maxGruposEixoX) {
+                    // Ordenar os dados antes de agrupar para manter os maiores valores
+                    const dadosOrdenados = labels.map((label, i) => ({ label, valor: valores[i] }))
+                        .sort((a, b) => b.valor - a.valor);
+
+                    // Manter os maiores valores conforme maxGruposEixoX - 1 (deixando espaço para "Outros")
+                    const principaisDados = dadosOrdenados.slice(0, maxGruposEixoX - 1);
+                    const outrosDados = dadosOrdenados.slice(maxGruposEixoX - 1);
+
+                    // Calcular o valor total para "Outros"
+                    const valorOutros = outrosDados.reduce((soma, item) => soma + item.valor, 0);
+
+                    // Reconstruir os arrays
+                    labels = principaisDados.map(item => item.label);
+                    valores = principaisDados.map(item => item.valor);
+
+                    // Adicionar a categoria "Outros"
+                    if (outrosDados.length > 0) {
+                        labels.push(`Outros (${valorOutros.toFixed(1)}%)`);
+                        valores.push(valorOutros);
+                    }
+                }
             } else {
                 // Lógica original para gráficos de linha e barra
                 const dadosAgrupados = agruparDadosParaGrafico(trabalhos, campoCategorias, campoValores);
@@ -1486,6 +1524,13 @@
                     // Atualizar labels e valores
                     labels = labelsOrdenados;
                     valores = valoresOrdenados;
+                }
+
+                // Agrupar os dados se exceder o número máximo de grupos
+                if (labels.length > maxGruposEixoX) {
+                    const dadosAgrupados = agruparDadosEixoX(labels, valores, maxGruposEixoX);
+                    labels = dadosAgrupados.labels;
+                    valores = dadosAgrupados.valores;
                 }
             }
 

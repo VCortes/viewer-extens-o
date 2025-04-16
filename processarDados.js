@@ -216,5 +216,51 @@ const executarProcessamento = async () => {
     }
 };
 
+/**
+ * Função para agrupar dados quando há muitos pontos no eixo X
+ * @param {Array} labels - Array com os rótulos originais
+ * @param {Array} valores - Array com os valores originais
+ * @param {number} maxGrupos - Número máximo de grupos a serem exibidos
+ * @returns {Object} - Objeto com arrays de labels e valores agrupados
+ */
+function agruparDadosEixoX(labels, valores, maxGrupos) {
+    // Se o número de labels é menor ou igual ao máximo, não precisa agrupar
+    if (labels.length <= maxGrupos) {
+        return { labels, valores };
+    }
+
+    // Calcular o tamanho de cada grupo
+    const tamanhoGrupo = Math.ceil(labels.length / maxGrupos);
+
+    // Arrays para os novos labels e valores agrupados
+    const labelsAgrupados = [];
+    const valoresAgrupados = [];
+
+    // Agrupar os dados em grupos do tamanho calculado
+    for (let i = 0; i < labels.length; i += tamanhoGrupo) {
+        // Pegar o intervalo de labels para este grupo
+        const grupoLabels = labels.slice(i, Math.min(i + tamanhoGrupo, labels.length));
+        const grupoValores = valores.slice(i, Math.min(i + tamanhoGrupo, valores.length));
+
+        // Determinar o label do grupo (primeiro-último)
+        let labelGrupo;
+        if (grupoLabels.length === 1) {
+            labelGrupo = grupoLabels[0];
+        } else {
+            labelGrupo = `${grupoLabels[0]} - ${grupoLabels[grupoLabels.length - 1]}`;
+        }
+
+        // Calcular o valor médio do grupo
+        const somaGrupo = grupoValores.reduce((soma, val) => soma + val, 0);
+        const mediaGrupo = somaGrupo / grupoValores.length;
+
+        // Adicionar aos arrays agrupados
+        labelsAgrupados.push(labelGrupo);
+        valoresAgrupados.push(mediaGrupo);
+    }
+
+    return { labels: labelsAgrupados, valores: valoresAgrupados };
+}
+
 // Executa o processamento
 executarProcessamento();
